@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AniManxwa — Uzbek Manga & Manhwa Platformasi</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #0b0f19; color: #f3f4f6; font-family: system-ui, -apple-system, sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Boshlang'ich Manhwa Baza
+        const INITIAL_MANGAS = [
+            { id: '1', title: 'Solo Leveling', altTitle: 'Na Honjaman Level Up', cover: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&q=80', type: 'MANHWA', rating: 4.9, chaptersCount: 179, status: 'COMPLETED', genre: 'Ekshen', author: 'Chugong', desc: 'Dunyodagi eng zaif E-darajali ovchi Sung Jin-Woo kutilmaganda sirli tizim kuchi orqali eng kuchli soya hukmdoriga aylanadi.', views: '2.4M' },
+            { id: '2', title: 'The Beginning After The End', altTitle: 'TBATE', cover: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80', type: 'MANHWA', rating: 4.8, chaptersCount: 175, status: 'ONGOING', genre: 'Fantezi', author: 'TurtleMe', desc: 'Buyuk qirol Grey o‘zining ikkinchi hayotida sehr va yirtqichlar to‘la mo‘jizaviy dunyoda Arthur Leywin bo‘lib qayta birth topadi.', views: '1.8M' },
+            { id: '3', title: 'Omniscient Reader', altTitle: 'ORV', cover: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&q=80', type: 'MANHWA', rating: 4.9, chaptersCount: 188, status: 'ONGOING', genre: 'Tizim', author: 'Sing-Shong', desc: 'O‘zi o‘qiyotgan apokalipsis haqidagi roman voqealari real hayotga aylanganda, dunyodagi yagona yakunini biladigan o‘quvchi.', views: '1.9M' },
+            { id: '4', title: 'Tower of God', altTitle: 'Kami no Tou', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&q=80', type: 'MANHWA', rating: 4.7, chaptersCount: 550, status: 'ONGOING', genre: 'Sarguzasht', author: 'SIU', desc: 'Minora cho‘qqisida siz orzu qilgan barcha narsa bor. Bam o‘zining eng yaqin do‘sti Rahel ortidan minoraga qadam qo‘yadi.', views: '3.1M' }
+        ];
+
+        // Har bir bob uchun namuna rasmlar
+        const SAMPLE_PAGES = [
+            "https://picsum.photos/800/1200?random=1",
+            "https://picsum.photos/800/1200?random=2",
+            "https://picsum.photos/800/1200?random=3",
+            "https://picsum.photos/800/1200?random=4"
+        ];
+
+        const INITIAL_ANNOUNCEMENTS = [
+            { id: '1', title: '🔥 Saytimiz rasman ishga tushdi!', content: 'Hurmatli foydalanuvchilar, AniManxwa platformasida eng so‘nggi manhwa va mangalarni yuqori sifatda o‘qishingiz mumkin!', date: 'Bugun, 14:00', tag: 'YANGILIK' },
+            { id: '2', title: '⚡ Solo Leveling yangi bob tarjima qilinmoqda', content: 'Tez orada keyingi boblar o‘zbek tilida taqdim etiladi. Bizni kuzatib boring!', date: 'Kecha', tag: 'E‘LON' }
+        ];
+
+        const INITIAL_POLL = {
+            question: "Qaysi Manhwa keyingi haftada ko‘proq bob bilan tarjima qilinsin?",
+            options: [
+                { id: 1, text: "Solo Leveling", votes: 142 },
+                { id: 2, text: "Omniscient Reader", votes: 98 },
+                { id: 3, text: "Tower of God", votes: 65 }
+            ]
+        };
+
+        function App() {
+            const [mangas, setMangas] = useState(() => JSON.parse(localStorage.getItem('animanxwa_mangas')) || INITIAL_MANGAS);
+            const [news, setNews] = useState(() => JSON.parse(localStorage.getItem('animanxwa_news')) || INITIAL_ANNOUNCEMENTS);
+            const [poll, setPoll] = useState(() => JSON.parse(localStorage.getItem('animanxwa_poll')) || INITIAL_POLL);
+            const [hasVoted, setHasVoted] = useState(() => localStorage.getItem('animanxwa_voted') === 'true');
+
+            const [view, setView] = useState('home'); 
+            const [selectedManga, setSelectedManga] = useState(null);
+            const [selectedChapter, setSelectedChapter] = useState(1);
+            const [currentImgIndex, setCurrentImgIndex] = useState(0);
+
+            const [adminAuth, setAdminAuth] = useState(false);
+            const [adminUser, setAdminUser] = useState('');
+            const [adminPass, setAdminPass] = useState('');
+
+            const [newNewsTitle, setNewNewsTitle] = useState('');
+            const [newNewsContent, setNewNewsContent] = useState('');
+            const [newPollQ, setNewPollQ] = useState('');
+            const [newPollOpt1, setNewPollOpt1] = useState('');
+            const [newPollOpt2, setNewPollOpt2] = useState('');
+            const [newPollOpt3, setNewPollOpt3] = useState('');
+
+            useEffect(() => { localStorage.setItem('animanxwa_mangas', JSON.stringify(mangas)); }, [mangas]);
+            useEffect(() => { localStorage.setItem('animanxwa_news', JSON.stringify(news)); }, [news]);
+            useEffect(() => { localStorage.setItem('animanxwa_poll', JSON.stringify(poll)); }, [poll]);
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [view, adminAuth, news, poll, selectedChapter]);
+
+            const handleVote = (optionId) => {
+                if (hasVoted) return alert('Siz allaqachon ovoz bergansiz!');
+                const updatedOptions = poll.options.map(opt => opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt);
+                setPoll({ ...poll, options: updatedOptions });
+                setHasVoted(true);
+                localStorage.setItem('animanxwa_voted', 'true');
+            };
+
+            const handleAddNews = (e) => {
+                e.preventDefault();
+                if (!newNewsTitle || !newNewsContent) return alert('Sarlavha va matnni kiriting!');
+                const item = { id: Date.now().toString(), title: newNewsTitle, content: newNewsContent, date: 'Hozirgincha', tag: 'E‘LON' };
+                setNews([item, ...news]);
+                setNewNewsTitle(''); setNewNewsContent('');
+                alert('Yangi e‘lon Bosh sahifada chop etildi!');
+            };
+
+            const handleCreatePoll = (e) => {
+                e.preventDefault();
+                if (!newPollQ || !newPollOpt1 || !newPollOpt2) return alert('Savol va kamida 2 ta variant kiriting!');
+                const newPollData = {
+                    question: newPollQ,
+                    options: [
+                        { id: 1, text: newPollOpt1, votes: 0 },
+                        { id: 2, text: newPollOpt2, votes: 0 },
+                        ...(newPollOpt3 ? [{ id: 3, text: newPollOpt3, votes: 0 }] : [])
+                    ]
+                };
+                setPoll(newPollData);
+                setHasVoted(false);
+                localStorage.removeItem('animanxwa_voted');
+                setNewPollQ(''); setNewPollOpt1(''); setNewPollOpt2(''); setNewPollOpt3('');
+                alert('Yangi so‘rovnoma Bosh sahifaga joylashtirildi!');
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col justify-between">
+                    {/* Header Nav */}
+                    <header className="sticky top-0 z-50 bg-[#0d1322]/90 backdrop-blur-md border-b border-purple-900/30">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                            <button onClick={() => setView('home')} className="flex items-center gap-2 group">
+                                <div className="p-2 bg-purple-600 rounded-lg text-white group-hover:bg-purple-500 transition">
+                                    <i data-lucide="book-open" className="w-5 h-5"></i>
+                                </div>
+                                <span className="text-xl font-extrabold tracking-wider bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
+                                    AniManxwa
+                                </span>
+                            </button>
+
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setView('home')} className="text-sm font-semibold text-gray-300 hover:text-purple-400">Bosh sahifa</button>
+                                <button onClick={() => setView('admin')} className="px-3.5 py-1.5 bg-purple-950/80 border border-purple-700/60 rounded-lg text-xs font-semibold text-purple-300 hover:bg-purple-900 transition flex items-center gap-1.5">
+                                    <i data-lucide="shield" className="w-3.5 h-3.5"></i> Admin Panel
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main Section */}
+                    <main className="flex-grow">
+                        {/* 1. BOSH SAHIFA */}
+                        {view === 'home' && (
+                            <div className="space-y-10 pb-12">
+                                <section className="relative h-[380px] w-full flex items-center overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url('${mangas[0].cover}')` }}>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-[#0b0f19]/80 to-transparent"></div>
+                                    <div className="max-w-7xl mx-auto px-4 relative z-10 flex items-center gap-8">
+                                        <img src={mangas[0].cover} className="w-40 h-56 object-cover rounded-2xl shadow-2xl border border-purple-500/40 hidden md:block" />
+                                        <div className="space-y-3">
+                                            <span className="px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded-full uppercase">Top Manhwa</span>
+                                            <h1 className="text-4xl font-black text-white">{mangas[0].title}</h1>
+                                            <p className="text-gray-300 text-sm max-w-xl line-clamp-2">{mangas[0].desc}</p>
+                                            <button onClick={() => { setSelectedManga(mangas[0]); setView('detail'); }} className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs transition">O‘qishni boshlash</button>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    <div className="lg:col-span-2 space-y-6">
+                                        <h2 className="text-xl font-bold text-white flex items-center gap-2 border-b border-gray-800 pb-3">
+                                            <i data-lucide="flame" className="text-purple-500"></i> Mashhur Asarlar
+                                        </h2>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                            {mangas.map(m => (
+                                                <div key={m.id} onClick={() => { setSelectedManga(m); setView('detail'); }} className="bg-[#131a2a] rounded-xl overflow-hidden border border-gray-800 hover:border-purple-500 cursor-pointer transition group">
+                                                    <img src={m.cover} className="w-full h-52 object-cover group-hover:scale-105 transition duration-300" />
+                                                    <div className="p-3">
+                                                        <h3 className="font-bold text-xs text-white truncate group-hover:text-purple-400">{m.title}</h3>
+                                                        <span className="text-[10px] text-purple-400 font-bold">{m.chaptersCount}-bob</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="bg-[#131a2a] p-5 rounded-2xl border border-purple-900/40 space-y-4 shadow-xl">
+                                            <div className="flex items-center gap-2 text-purple-400 font-bold text-sm border-b border-gray-800 pb-2">
+                                                <i data-lucide="vote" className="w-4 h-4"></i> Admin So‘rovnomasi
+                                            </div>
+                                            <h3 className="text-xs font-bold text-white leading-snug">{poll.question}</h3>
+                                            <div className="space-y-2">
+                                                {poll.options.map(opt => {
+                                                    const totalVotes = poll.options.reduce((acc, curr) => acc + curr.votes, 0);
+                                                    const percent = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
+                                                    return (
+                                                        <div key={opt.id} onClick={() => handleVote(opt.id)} className="p-3 bg-[#0b0f19] hover:bg-purple-950/40 rounded-xl border border-gray-800 cursor-pointer transition space-y-1 relative overflow-hidden group">
+                                                            <div className="absolute top-0 left-0 bottom-0 bg-purple-900/30 transition-all" style={{ width: `${percent}%` }}></div>
+                                                            <div className="relative z-10 flex justify-between text-xs font-semibold text-gray-200">
+                                                                <span>{opt.text}</span>
+                                                                <span className="text-purple-400">{percent}% ({opt.votes})</span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            {hasVoted && <p className="text-[10px] text-emerald-400 font-semibold text-center">✓ Ovozingiz qabul qilindi!</p>}
+                                        </div>
+
+                                        <div className="bg-[#131a2a] p-5 rounded-2xl border border-gray-800 space-y-4">
+                                            <div className="flex items-center gap-2 text-purple-400 font-bold text-sm border-b border-gray-800 pb-2">
+                                                <i data-lucide="bell" className="w-4 h-4"></i> Admin E‘lonlari va Yangiliklar
+                                            </div>
+                                            <div className="space-y-3">
+                                                {news.map(n => (
+                                                    <div key={n.id} className="p-3 bg-[#0b0f19] rounded-xl border border-gray-800 space-y-1">
+                                                        <div className="flex justify-between items-center text-[10px]">
+                                                            <span className="px-2 py-0.5 bg-purple-950 text-purple-300 font-bold rounded">{n.tag}</span>
+                                                            <span className="text-gray-500">{n.date}</span>
+                                                        </div>
+                                                        <h4 className="font-bold text-xs text-white">{n.title}</h4>
+                                                        <p className="text-[11px] text-gray-400 leading-relaxed">{n.content}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 2. MANHWA DETAIL */}
+                        {view === 'detail' && selectedManga && (
+                            <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+                                <button onClick={() => setView('home')} className="text-purple-400 text-xs font-bold hover:underline">← Bosh sahifaga qaytish</button>
+                                <div className="bg-[#131a2a] p-6 rounded-2xl border border-gray-800 flex flex-col md:flex-row gap-6">
+                                    <img src={selectedManga.cover} className="w-48 h-64 object-cover rounded-xl mx-auto md:mx-0" />
+                                    <div className="space-y-3 flex-1">
+                                        <h1 className="text-2xl font-black text-white">{selectedManga.title}</h1>
+                                        <p className="text-xs text-purple-400 font-semibold">{selectedManga.author} | {selectedManga.genre}</p>
+                                        <p className="text-xs text-gray-300 leading-relaxed">{selectedManga.desc}</p>
+                                        
+                                        <div className="pt-2">
+                                            <h3 className="text-xs font-bold text-white mb-2">Bobni tanlang va o‘qing:</h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {[1, 2, 3, 4, 5].map(chapNum => (
+                                                    <button key={chapNum} onClick={() => { setSelectedChapter(chapNum); setCurrentImgIndex(0); setView('reader'); }} className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg transition">
+                                                        {chapNum}-bobni o‘qish
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 3. READER (TO'LIQ ISHLAYDIGAN MANHWA READER) */}
+                        {view === 'reader' && selectedManga && (
+                            <div className="min-h-screen bg-[#070a12] flex flex-col items-center py-6 px-2 space-y-6">
+                                {/* Top Reader Header Bar */}
+                                <div className="w-full max-w-2xl bg-[#0d1322] p-4 rounded-xl border border-gray-800 flex justify-between items-center sticky top-16 z-40 shadow-xl">
+                                    <button onClick={() => setView('detail')} className="text-xs font-bold text-purple-400 hover:underline">← Ortga</button>
+                                    <span className="text-xs font-extrabold text-white">{selectedManga.title} — <span className="text-purple-400">{selectedChapter}-bob</span></span>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <button disabled={selectedChapter <= 1} onClick={() => { setSelectedChapter(c => c - 1); setCurrentImgIndex(0); }} className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-xs text-white rounded font-bold">
+                                            Oldingi
+                                        </button>
+                                        <button onClick={() => { setSelectedChapter(c => c + 1); setCurrentImgIndex(0); }} className="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-xs text-white rounded font-bold">
+                                            Keyingi
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Vertikal O'qish (Webtoon Scroll) */}
+                                <div className="w-full max-w-2xl space-y-4">
+                                    <div className="text-center text-xs text-gray-400 bg-purple-950/40 p-2 rounded-lg border border-purple-900/30">
+                                        📜 Bob rasmlari pastga ketma-ket joylashgan. Pastga scroll qiling:
+                                    </div>
+                                    
+                                    {SAMPLE_PAGES.map((url, i) => (
+                                        <div key={i} className="relative bg-[#131a2a] rounded-xl overflow-hidden border border-gray-800 min-h-[300px] flex items-center justify-center">
+                                            <img 
+                                                src={`${url}&text=${encodeURIComponent(selectedManga.title + ' - ' + selectedChapter + '-bob (Sahifa ' + (i+1) + ')')}`} 
+                                                alt={`Sahifa ${i+1}`} 
+                                                className="w-full h-auto object-cover block"
+                                                loading="lazy"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Bottom Chapter Controls */}
+                                <div className="w-full max-w-2xl bg-[#0d1322] p-4 rounded-xl border border-gray-800 flex justify-between items-center">
+                                    <button disabled={selectedChapter <= 1} onClick={() => { setSelectedChapter(c => c - 1); window.scrollTo(0,0); }} className="px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-xs text-white rounded-lg font-bold">
+                                        ← Oldingi bob
+                                    </button>
+                                    <span className="text-xs text-gray-400 font-bold">{selectedChapter}-bob yakunlandi</span>
+                                    <button onClick={() => { setSelectedChapter(c => c + 1); window.scrollTo(0,0); }} className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-xs text-white rounded-lg font-bold">
+                                        Keyingi bob →
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 4. ADMIN PANEL */}
+                        {view === 'admin' && (
+                            <div className="max-w-4xl mx-auto px-4 py-10">
+                                {!adminAuth ? (
+                                    <div className="bg-[#131a2a] p-8 rounded-2xl border border-purple-900/50 max-w-md mx-auto space-y-6 shadow-2xl">
+                                        <div className="text-center">
+                                            <h2 className="text-2xl font-black text-white">Admin Autentifikatsiya</h2>
+                                            <p className="text-xs text-gray-400 mt-1">Boshqaruv paneliga kirish uchun ma‘lumotlarni kiriting</p>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-300 block mb-1">Username</label>
+                                                <input type="text" placeholder="Username kiritilsin" value={adminUser} onChange={e => setAdminUser(e.target.value)} className="w-full bg-[#0b0f19] border border-gray-700 rounded-lg p-3 text-xs text-white focus:border-purple-500 outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-300 block mb-1">Parol</label>
+                                                <input type="password" placeholder="••••••••" value={adminPass} onChange={e => setAdminPass(e.target.value)} className="w-full bg-[#0b0f19] border border-gray-700 rounded-lg p-3 text-xs text-white focus:border-purple-500 outline-none" />
+                                            </div>
+                                        </div>
+                                        <button onClick={() => { if(adminUser === 'admin' && adminPass === '12345') setAdminAuth(true); else alert('Kiritilgan xavfsizlik ma‘lumotlari noto‘g‘ri!'); }} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg transition">Tizimga Kirish</button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-8">
+                                        <div className="flex justify-between items-center border-b border-gray-800 pb-4">
+                                            <h1 className="text-2xl font-bold text-white">Admin Boshqaruv Paneli</h1>
+                                            <button onClick={() => setAdminAuth(false)} className="px-4 py-1.5 bg-red-950 border border-red-800 text-red-400 text-xs font-bold rounded-lg">Chiqish</button>
+                                        </div>
+
+                                        <form onSubmit={handleAddNews} className="bg-[#131a2a] p-6 rounded-2xl border border-gray-800 space-y-4">
+                                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                                <i data-lucide="bell" className="text-purple-400"></i> Bosh Sahifa Uchun Yangilik / E‘lon Chop Etish
+                                            </h3>
+                                            <input type="text" placeholder="Yangilik Sarlavhasi" value={newNewsTitle} onChange={e => setNewNewsTitle(e.target.value)} className="w-full bg-[#0b0f19] border border-gray-700 rounded-lg p-3 text-xs text-white" required />
+                                            <textarea placeholder="Yangilik yoki e‘lon matni..." value={newNewsContent} onChange={e => setNewNewsContent(e.target.value)} className="w-full bg-[#0b0f19] border border-gray-700 rounded-lg p-3 text-xs text-white h-20" required></textarea>
+                                            <button type="submit" className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg transition">Bosh Sahifaga Chop Etish</button>
+                                        </form>
+
+                                        <form onSubmit={handleCreatePoll} className="bg-[#131a2a] p-6 rounded-2xl border border-purple-900/40 space-y-4">
+                                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                                <i data-lucide="vote" className="text-purple-400"></i> Yangi So‘rovnoma (Vote) Yaratish
+                                            </h3>
+                                            <input type="text" placeholder="So‘rovnoma Savoli" value={newPollQ} onChange={e => setNewPollQ(e.target.value)} className="w-full bg-[#0b0f19] border border-gray-700 rounded-lg p-3 text-xs text-white" required />
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                <input type="text" placeholder="1-Variant" value={newPollOpt1} onChange={e => setNewPollOpt1(e.target.value)} className="bg-[#0b0f19] border border-gray-700 rounded-lg p-2.5 text-xs text-white" required />
+                                                <input type="text" placeholder="2-Variant" value={newPollOpt2} onChange={e => setNewPollOpt2(e.target.value)} className="bg-[#0b0f19] border border-gray-700 rounded-lg p-2.5 text-xs text-white" required />
+                                                <input type="text" placeholder="3-Variant (Ixtiyoriy)" value={newPollOpt3} onChange={e => setNewPollOpt3(e.target.value)} className="bg-[#0b0f19] border border-gray-700 rounded-lg p-2.5 text-xs text-white" />
+                                            </div>
+                                            <button type="submit" className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg transition">So‘rovnomani Faollashtirish</button>
+                                        </form>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="bg-[#080b13] border-t border-gray-800 py-6 text-center text-xs text-gray-500">
+                        © 2026 AniManxwa Platformasi. Barcha huquqlar himoyalangan.
+                    </footer>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
